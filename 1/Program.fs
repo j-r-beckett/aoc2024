@@ -1,15 +1,18 @@
-﻿let rec reverse lst = 
-    match lst with
-    | head::tail -> (reverse tail) @ [head]
-    | [] -> []
+﻿let readInput fileName =
+    let parseNums line =
+        let pattern = @"(\d+)\s+(\d+)"
+        let matches = System.Text.RegularExpressions.Regex.Match (line, pattern)
+        (int (string matches.Groups[1]), int (string matches.Groups[2]))
+    System.IO.File.ReadLines(fileName) |> List.ofSeq  |> List.map parseNums |> List.unzip 
 
-let rec firstDigit chars = 
-    match chars with
-    | head::tail -> if System.Char.IsDigit head then string head else firstDigit tail
-    | [] -> invalidOp "no digits"
+let similarity left right =
+    let count lst n = List.filter ((=) n) lst |> List.length
+    List.map (fun n -> n * (count right n)) left
 
-let calibrationVal chars = int (firstDigit chars + (firstDigit (reverse chars)))
+let left, right = readInput "input.dat"
 
+// part 1
+List.zip (List.sort left) (List.sort right) |> List.map (fun (a, b) -> abs (a - b)) |> List.sum |> printfn "%A"
 
-
-System.IO.File.ReadLines("input.dat") |> List.ofSeq |> List.map Seq.toList |> List.map calibrationVal |> List.sum |> printfn "%A"
+// part 2
+similarity left right |> List.sum |> printfn "%A"
