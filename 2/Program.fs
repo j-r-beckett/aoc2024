@@ -1,32 +1,31 @@
 ﻿let parseInput fileName =
-    let lines = System.IO.File.ReadLines(fileName) |> List.ofSeq
-    let parseLevel (report : string) = report |> _.Split(' ') |> List.ofArray |> List.map int
-    lines |> List.map parseLevel
+    let parseReport (report : string) = report |> _.Split(' ') |> List.ofArray |> List.map int
+    System.IO.File.ReadLines(fileName) |> List.ofSeq |> List.map parseReport
 
 type Mode =
     | Increasing
     | Decreasing
 
-let isLevelSafe first second (mode : Mode) =
-    match mode with
-    | Increasing -> second > first && second - first <= 3
-    | Decreasing -> first > second && first - second <= 3
+let isSafe report =
+    let rec helper (report: int list) mode =
+        let isCompliant () =
+            match mode with
+            | Increasing -> report[1] > report[0] && report[1] - report[0] <= 3
+            | Decreasing -> report[0] > report[1] && report[0] - report[1] <= 3 
+        if report.Length <= 1 then true else isCompliant () && helper report[1..] mode
+    helper report Increasing || helper report Decreasing
 
-let isSafe (level : int list) = 
-    let pairs = List.zip level[..level.Length - 2] level[1..]
-    (List.fold (fun soFar (a, b) -> soFar && isLevelSafe a b Increasing) true pairs) || (List.fold (fun soFar (a, b) -> soFar && isLevelSafe a b Decreasing) true pairs)
+let isAnyPossibleReportSafe report =
+    let rec any (lst : bool list) = if lst.IsEmpty then false else lst[0] || any lst[1..]
+    
+    let allPossibleReports (baseReport : int list) = 
+        let remove i = baseReport[..i - 1] @ baseReport[i + 1..]
+        [for i in 0..baseReport.Length do yield (remove i)]
 
-let allPossibleLevels (baseLevel : int list) =
-    seq {
-        for i in 0..baseLevel.Length do
-            yield baseLevel[..i - 1] @ baseLevel[i + 1..]
-    }
+    any (List.map isSafe (allPossibleReports report))
 
-let isAnySafe (level : int list) =
-    let safes = Seq.map isSafe (allPossibleLevels level) |> Seq.filter id |> List.ofSeq
-    safes.Length > 0
+let countTrue (lst: bool list) = List.fold (fun count e -> count + (if e then 1 else 0)) 0 lst
 
-let levels = parseInput "input.dat"
-// allPossibleLevels levels[0]  |> List.ofSeq |> printfn "%A"
-levels |> List.map isSafe |> List.filter id |> _.Length |> printfn "%A"
-levels |> List.map isAnySafe |> List.filter id |> _.Length |> printfn "%A"
+let reports = parseInput "input.dat"
+reports |> List.map isSafe |> countTrue |> printfn "%A" // part 1
+reports |> List.map isAnyPossibleReportSafe |> countTrue |> printfn "%A"  // part 2
