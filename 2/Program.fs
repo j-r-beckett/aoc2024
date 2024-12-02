@@ -16,5 +16,17 @@ let isSafe (level : int list) =
     let pairs = List.zip level[..level.Length - 2] level[1..]
     (List.fold (fun soFar (a, b) -> soFar && isLevelSafe a b Increasing) true pairs) || (List.fold (fun soFar (a, b) -> soFar && isLevelSafe a b Decreasing) true pairs)
 
+let allPossibleLevels (baseLevel : int list) =
+    seq {
+        for i in 0..baseLevel.Length do
+            yield baseLevel[..i - 1] @ baseLevel[i + 1..]
+    }
+
+let isAnySafe (level : int list) =
+    let safes = Seq.map isSafe (allPossibleLevels level) |> Seq.filter id |> List.ofSeq
+    safes.Length > 0
+
 let levels = parseInput "input.dat"
+// allPossibleLevels levels[0]  |> List.ofSeq |> printfn "%A"
 levels |> List.map isSafe |> List.filter id |> _.Length |> printfn "%A"
+levels |> List.map isAnySafe |> List.filter id |> _.Length |> printfn "%A"
