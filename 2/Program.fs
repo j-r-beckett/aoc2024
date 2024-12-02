@@ -24,8 +24,8 @@ let isAnyPossibleReportSafe report =
 
     any (List.map isSafe (allPossibleReports report))
 
-let countTrue (lst: bool list) = List.fold (fun count e -> count + (if e then 1 else 0)) 0 lst
+let countTrue f lst = List.fold (fun count e -> count + (if f e then 1 else 0)) 0 lst
 
 let reports = parseInput "input.dat"
-reports |> List.map isSafe |> countTrue |> printfn "%A" // part 1
-reports |> List.map isAnyPossibleReportSafe |> countTrue |> printfn "%A"  // part 2
+reports |> countTrue isSafe |> printfn "%A" 
+reports |> countTrue isAnyPossibleReportSafe |> printfn "%A" 
