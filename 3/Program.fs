@@ -15,6 +15,7 @@ let tokenize lines =
                 let pattern = @"mul\((\d{1,3}),(\d{1,3})\)"
                 let matches = System.Text.RegularExpressions.Regex.Match (multExpr, pattern)
                 Multiplication(int (string matches.Groups[1]), int (string matches.Groups[2]))
+            
             match expr with
             | "do()" -> Enable
             | "don't()" -> Disable
