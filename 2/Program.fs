@@ -1,6 +1,8 @@
-﻿let parseInput fileName =
+﻿open Common.Functions
+
+let parseInput filename =
     let parseReport (report : string) = report |> _.Split(' ') |> List.ofArray |> List.map int
-    System.IO.File.ReadLines(fileName) |> List.ofSeq |> List.map parseReport
+    readlines filename |> List.ofSeq |> List.map parseReport
 
 type Mode =
     | Increasing
@@ -27,5 +29,5 @@ let isAnyPossibleReportSafe report =
 let countTrue f lst = List.fold (fun count e -> count + (if f e then 1 else 0)) 0 lst
 
 let reports = parseInput "input.dat"
-reports |> countTrue isSafe |> printfn "%A" 
-reports |> countTrue isAnyPossibleReportSafe |> printfn "%A" 
+reports |> countTrue isSafe |> part1 
+reports |> countTrue isAnyPossibleReportSafe |> part2
