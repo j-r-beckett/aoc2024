@@ -19,27 +19,19 @@ let tokenize lines =
             | "do()" -> Enable
             | "don't()" -> Disable
             | _ -> parseMultiplication expr
+
         List.map tokenizeExpr exprs
 
-    lines |> List.map extractExprs |> List.map tokenizeExprs  |> List.concat
+    lines |> List.map (extractExprs >> tokenizeExprs) |> List.concat
 
-
-let rec evaluateAlwaysEnabled tokens =
-    match tokens with 
-    | head::tail -> match head with
-                    | Multiplication (n, m) -> n * m + evaluateAlwaysEnabled tail
-                    | _ -> evaluateAlwaysEnabled tail
-    | [] -> 0
-
-let rec evaluate enabled tokens =
-    match tokens with
-    | head::tail -> match head with
-                    | Multiplication (n, m) -> (if enabled then n * m else 0) + evaluate enabled tail 
-                    | Enable -> evaluate true tail 
-                    | Disable -> evaluate false tail 
-    | [] -> 0
-
+let rec evaluate canDisable tokens =
+    let helper (sum, enabled) token =
+        match token with
+        | Multiplication (n, m) -> sum + (if enabled then n * m else 0), enabled
+        | Enable -> sum, true
+        | Disable -> sum, false || (not canDisable)
+    fst (List.fold helper (0, true) tokens)
 
 let tokens = System.IO.File.ReadLines("input.dat") |> List.ofSeq |> tokenize
-tokens |> evaluateAlwaysEnabled |> printfn "%A"
-tokens |> evaluate true |> printfn "%A"
+tokens |> evaluate false |> printfn "%A"  // part 1
+tokens |> evaluate true |> printfn "%A"  // part 2
