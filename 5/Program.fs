@@ -42,7 +42,9 @@ let middlePageNumber (update: Update) = update[update.Length / 2]
 
 let rules, updates = readInput "input.dat"
 
-updates |> List.filter (allRulesSatisfied rules) |> List.map middlePageNumber |> List.sum |> part1
+updates 
+|> List.filter (allRulesSatisfied rules) 
+|> List.map middlePageNumber |> List.sum |> part1
 
 updates 
 |> List.filter (not << allRulesSatisfied rules)
