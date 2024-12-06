@@ -3,114 +3,121 @@
 let parseInput filename =
     readlines filename |> List.map Seq.toArray |> List.toArray
 
+type Map = array<array<char>>
+
 type Delta = int * int
 
 type Direction =
-| Up of Delta
-| Right of Delta
-| Down of Delta
-| Left of Delta
+    | Up
+    | Right
+    | Down
+    | Left
 
-type Guard = {row: int; col: int; direction: Direction}
+    member direction.Delta =
+        match direction with
+        | Up -> -1, 0
+        | Right -> 0, 1
+        | Down -> 1, 0
+        | Left -> 0, -1
 
-let rec escapeRoute (map: array<array<char>>) (guardRow: int, guardCol: int) visited =
-    let direction row col =
-        match map[row][col] with
-        | '^' -> -1, 0
-        | '>' -> 0, 1
-        | 'v' -> 1, 0
-        | '<' -> 0, -1
-        | _ -> raise (System.InvalidOperationException "unkown guard direction")
+type Guard =
+    { row: int
+      col: int
+      direction: Direction }
 
-    let isBlocked (row: int) (col: int) (direction: int * int) =
-        map[row + (fst direction)][col + (snd direction)] = '#'
+let parseDirection directionChar =
+    match directionChar with
+    | '^' -> Some Up
+    | '>' -> Some Right
+    | 'v' -> Some Down
+    | '<' -> Some Left
+    | _ -> None
 
-    let willStepOffMap row col direction =
-        let nextRow, nextCol = row + (fst direction), col + (snd direction)
+let rotate (guard: Guard) =
+    let newDirection =
+        match guard.direction with
+        | Up -> Right
+        | Right -> Down
+        | Down -> Left
+        | Left -> Up
 
-        nextRow <= -1
-        || nextRow >= map.Length
-        || nextCol <= -1
-        || nextCol >= map[0].Length
+    { guard with direction = newDirection }
 
-    let rotateGuard () =
-        let newGuard =
-            match map[guardRow][guardCol] with
-            | '^' -> '>'
-            | '>' -> 'v'
-            | 'v' -> '<'
-            | '<' -> '^'
-            | _ -> raise (System.InvalidOperationException "unkown guard direction")
+let stepForward (guard: Guard) =
+    let newRow, newcol =
+        guard.row + (fst guard.direction.Delta), guard.col + (snd guard.direction.Delta)
 
-        Array.set map[guardRow] guardCol newGuard
+    { guard with
+        row = newRow
+        col = newcol }
 
-    let stepGuardForward () =
-        let guardDirection = direction guardRow guardCol
+let isBlocked (guard: Guard) (map: Map) =
+    let movedGuard = stepForward guard
+    map[movedGuard.row][movedGuard.col] = '#'
 
-        let newGuardRow, newGuardCol =
-            guardRow + (fst guardDirection), guardCol + (snd guardDirection)
+let willStepOffMap (guard: Guard) (map: Map) =
+    let movedGuard = stepForward guard
 
-        Array.set map[newGuardRow] newGuardCol (map[guardRow][guardCol])
-        Array.set map[guardRow] guardCol '.'
-        newGuardRow, newGuardCol
+    movedGuard.row <= -1
+    || movedGuard.row >= map.Length
+    || movedGuard.col <= -1
+    || movedGuard.col >= map[0].Length
 
-    let guardDirection = direction guardRow guardCol
-    let key = guardRow, guardCol, (map[guardRow][guardCol])
+let rec escapeRoute (map: Map) (guard: Guard) visited =
+    let visitedKey = guard.row, guard.col, guard.direction
 
-    if willStepOffMap guardRow guardCol guardDirection then
-        Set.add key visited |> Set.map (fun (row, col, _) -> row, col) |> Some
+    if willStepOffMap guard map then
+        Set.add visitedKey visited |> Some
+    else if Set.contains visitedKey visited then
+        None
+    else if isBlocked guard map then
+        escapeRoute map (rotate guard) visited
     else
-        if Set.contains key visited then
-            None
-        else if isBlocked guardRow guardCol guardDirection then
-            rotateGuard () |> ignore
-            escapeRoute map (guardRow, guardCol) visited
-        else
-            escapeRoute map (stepGuardForward ()) (Set.add key visited)
+        escapeRoute map (stepForward guard) (Set.add visitedKey visited)
 
-let findGuard (map: array<array<char>>) =
-    let rec findGuardHelper row =
-        let rec guardCol col =
-            if col >= map[0].Length then
-                None
-            else
-                match map[row][col] with
-                | '^' -> Some col
-                | '>' -> Some col
-                | 'v' -> Some col
-                | '<' -> Some col
-                | _ -> guardCol (col + 1)
+let findGuard (map: Map) =
+    let rec findGuardHelper positions =
+        match positions with
+        | [] -> raise (System.ArgumentException("no guard found"))
+        | (row, col) :: tail ->
+            match parseDirection (map[row][col]) with
+            | Some direction ->
+                { row = row
+                  col = col
+                  direction = direction }
+            | None -> findGuardHelper tail
 
-        if row >= map.Length then
-            None
-        else
-            match guardCol 0 with
-            | Some col -> Some(row, col)
-            | None -> findGuardHelper (row + 1)
+    findGuardHelper
+        [ for row in [ 0 .. map.Length - 1 ] do
+              for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
 
-    findGuardHelper 0
 
-let deepCopy (map: array<array<char>>) = map |> Array.map Array.copy
+let countLoops (map: Map) (guard: Guard) (positions: list<int * int>) =
+    let isLoop (obsRow, obsCol) =
+        Array.set map[obsRow] obsCol '#'
 
-let countLoops (map: array<array<char>>) (guardRow: int, guardCol: int) (positions: list<int * int>) =
-    let isLoopHelper position =
-        let newMap = deepCopy map
-        Array.set newMap[fst position] (snd position) '#'
-        match escapeRoute newMap (guardRow, guardCol) Set.empty with
-        | Some _ -> false
-        | None -> true
+        let ret =
+            match escapeRoute map guard Set.empty with
+            | Some _ -> false
+            | None -> true
 
-    positions |> List.filter isLoopHelper |> List.length
+        Array.set map[obsRow] obsCol '.'
+        ret
 
-let map = parseInput "test.dat"
+    positions |> List.filter isLoop |> List.length
 
-match findGuard map with
-| Some guardPos ->
-    let route = match escapeRoute (deepCopy map) guardPos Set.empty with
-                | Some route -> route
-                | None -> raise (System.InvalidOperationException("no route found"))
-    route |> Set.count |> part1
+let map = parseInput "input.dat"
+let guard = findGuard map
 
-    let positions = route |> Set.toList |> List.filter (fun (row, col) -> (row, col) <> guardPos)
-    countLoops map guardPos positions |> part2
-| None -> printfn "No guard found"
+let visited =
+    match escapeRoute map guard Set.empty with
+    | Some route -> route
+    | None -> raise (System.InvalidOperationException("no route found for part 1"))
+
+let route = visited |> Set.map (fun (row, col, _) -> row, col) |> Set.toList
+route |> List.length |> part1
+
+let positions =
+    route |> List.filter (fun (row, col) -> (row, col) <> (guard.row, guard.col))
+
+countLoops map guard route |> part2
