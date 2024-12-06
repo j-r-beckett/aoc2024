@@ -148,7 +148,7 @@ let countLoops (map: array<array<char>>) (guardRow: int, guardCol: int) (positio
         // printfn "Setting map at %i, %i to obstruction" (fst position) (snd position)
         // printfn "%A" newMap
         let res = isLoop newMap (guardRow, guardCol) Set.empty
-        if res then printfn "%A" position
+        // if res then printfn "%A" position
         res
     positions |> List.filter isLoopHelper |> List.length
 
@@ -166,5 +166,5 @@ match findGuard map with
     // let positions = [(6, 3)]
     // printfn "positions: %A" positions
     // printfn "%A" map
-    countLoops map guardPos positions |> part2
+    countLoops map guardPos positions |> part2  // 14251 too high
 | None -> printfn "No guard found"
