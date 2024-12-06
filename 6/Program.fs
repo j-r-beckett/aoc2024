@@ -3,7 +3,6 @@
 let parseInput filename =
     readlines filename |> List.map Seq.toArray |> List.toArray
 
-
 let rec moveGuard (map: array<array<char>>) (guardRow: int, guardCol: int) =
     let direction row col = match map[row][col] with
                             | '^' -> -1, 0
@@ -30,7 +29,6 @@ let rec moveGuard (map: array<array<char>>) (guardRow: int, guardCol: int) =
     let stepGuardForward () =
         let guardDirection = direction guardRow guardCol
         let newGuardRow, newGuardCol = guardRow + (fst guardDirection), guardCol + (snd guardDirection)
-        // printfn "%A, %A" newGuardRow newGuardCol
         Array.set map[newGuardRow] newGuardCol (map[guardRow][guardCol])
         Array.set map[guardRow] guardCol 'X'
         newGuardRow, newGuardCol
@@ -96,11 +94,6 @@ let rec isLoop (map: array<array<char>>) (guardRow: int, guardCol: int) (visited
                 isLoop map (stepGuardForward ()) (Set.add key visited)
 
 let findGuard (map: array<array<char>>) =
-    // let containsGuard row = Array.contains map[row] "^" || Array.contains map[row] ">" || Array.contains map[row] "v" || Array.contains map[row] "<"
-    // let guardCol = Array.find
-    // let helper row =
-    //     if containsGuard row
-    //     then row, Array.findIndex map[row] 
     let rec findGuardHelper row =
         let rec guardCol col =
             if col >= map[0].Length
@@ -124,22 +117,6 @@ let countXs (map: array<array<char>>) =
     [0..map.Length - 1] |> List.map countXsInRow |> List.sum
 
 let deepCopy (map: array<array<char>>) = map |> Array.map Array.copy
-
-// let findLoops (map: array<array<char>>) (guardRow: int, guardCol: int)=
-//     let setObstruction row col = Array.set map[row] col '#'
-//     let unsetObstruction row col = Array.set map[row] col '.'
-//     let rec loopsInRow startCol row  =
-//         if startCol >= map[0].Length
-//         then 0
-//         else if map[row][startCol] = '.'
-//         then
-//             setObstruction row startCol
-//             let hasLoop = isLoop (deepCopy map) (guardRow, guardCol) Set.empty
-//             unsetObstruction row startCol 
-//             (if hasLoop then 1 else 0) + (loopsInRow (startCol + 1) row)
-//         else
-//             loopsInRow (startCol + 1) row
-//     [0..map.Length - 1] |> List.map (loopsInRow 0) |> List.sum
 
 let countLoops (map: array<array<char>>) (guardRow: int, guardCol: int) (positions: list<int * int>) =
     let isLoopHelper position =
