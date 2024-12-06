@@ -145,26 +145,17 @@ let countLoops (map: array<array<char>>) (guardRow: int, guardCol: int) (positio
     let isLoopHelper position =
         let newMap = deepCopy map
         Array.set newMap[fst position] (snd position) '#'
-        // printfn "Setting map at %i, %i to obstruction" (fst position) (snd position)
-        // printfn "%A" newMap
-        let res = isLoop newMap (guardRow, guardCol) Set.empty
-        // if res then printfn "%A" position
-        res
+        isLoop newMap (guardRow, guardCol) Set.empty
     positions |> List.filter isLoopHelper |> List.length
 
-let map = parseInput "input.dat"
+let map = parseInput "test.dat"
 
 match findGuard map with
 | Some guardPos -> 
     let newMap = moveGuard (deepCopy map) guardPos
     countXs newMap |> part1
-    // printfn "%A" map
-    // printfn "%A" newMap
 
     let positions = [for row in [0..map.Length - 1] do for col in [0..map[0].Length - 1] -> (row, col)] 
                     |> List.filter (fun (row, col) -> map[row][col] = '.')
-    // let positions = [(6, 3)]
-    // printfn "positions: %A" positions
-    // printfn "%A" map
     countLoops map guardPos positions |> part2  // 14251 too high
 | None -> printfn "No guard found"
