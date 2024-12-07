@@ -1,5 +1,5 @@
 bin/
 obj/
 .fake
-*/input.dat
-*/test.dat
+**/input.dat
+**/test.dat
