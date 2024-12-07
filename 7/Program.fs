@@ -12,23 +12,23 @@ let parseEquation (str: string) =
 
 let possibleResults (operators: (int64 -> int64 -> int64) list) (equation: Equation) =
     let rec helper (remainingOperands: int64 list) (soFar: int64) =
-        if soFar > equation.Result
-        then Set.empty
+        if soFar > equation.Result then
+            Set.empty
         else
-        match remainingOperands with
-        | [] -> Set.ofList [ soFar ]
-        | operand :: remaining ->
-            operators
-            |> List.map (fun operator -> operator soFar operand)
-            |> List.map (helper remaining)
-            |> List.toSeq
-            |> Set.unionMany
+            match remainingOperands with
+            | [] -> Set.ofList [ soFar ]
+            | operand :: remaining ->
+                operators
+                |> List.map (fun operator -> operator soFar operand)
+                |> List.map (helper remaining)
+                |> List.toSeq
+                |> Set.unionMany
 
     helper equation.Operands[1..] equation.Operands[0]
 
 let calibrationValue equations operators =
     equations
-    |> List.map (fun equation -> possibleResults operators equation)
+    |> List.map (possibleResults operators)
     |> List.zip equations
     |> List.filter (fun (equation, results) -> Set.contains equation.Result results)
     |> List.map (fun (equation, _) -> equation.Result)
