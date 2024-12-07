@@ -10,28 +10,26 @@ let parseEquation (str: string) =
 
     { Result = result; Operands = operands }
 
-let possibleResults (operators: (int64 -> int64 -> int64) list) (equation: Equation) =
+let rec listOr f lst =
+    match lst with
+    | [] -> false
+    | head :: tail -> f head || listOr f tail
+
+let isValid (operators: (int64 -> int64 -> int64) list) (equation: Equation) =
     let rec helper (remainingOperands: int64 list) (soFar: int64) =
         if soFar > equation.Result then
-            Set.empty
+            false
         else
             match remainingOperands with
-            | [] -> Set.ofList [ soFar ]
-            | operand :: remaining ->
-                operators
-                |> List.map (fun operator -> operator soFar operand)
-                |> List.map (helper remaining)
-                |> List.toSeq
-                |> Set.unionMany
+            | [] -> soFar = equation.Result
+            | operand :: remaining -> operators |> listOr (fun operator -> helper remaining (operator soFar operand))
 
     helper equation.Operands[1..] equation.Operands[0]
 
 let calibrationValue equations operators =
     equations
-    |> List.map (possibleResults operators)
-    |> List.zip equations
-    |> List.filter (fun (equation, possibleResults) -> Set.contains equation.Result possibleResults)
-    |> List.map (fun (equation, _) -> equation.Result)
+    |> List.filter (isValid operators)
+    |> List.map (fun equation -> equation.Result)
     |> List.sum
 
 let equations = readlines "input.dat" |> List.map parseEquation
