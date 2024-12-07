@@ -30,7 +30,7 @@ let calibrationValue equations operators =
     equations
     |> List.map (possibleResults operators)
     |> List.zip equations
-    |> List.filter (fun (equation, results) -> Set.contains equation.Result results)
+    |> List.filter (fun (equation, possibleResults) -> Set.contains equation.Result possibleResults)
     |> List.map (fun (equation, _) -> equation.Result)
     |> List.sum
 
