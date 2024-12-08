@@ -46,7 +46,7 @@ let rec calculateAntinodesOfFreq (bounds: int * int) f (positions: list<int * in
     | [] -> Set.empty
     | headPosition :: tailPositions ->
         tailPositions
-        |> List.map (fun tailAntenna -> f headPosition tailAntenna bounds)
+        |> List.map (fun tailPosition -> f headPosition tailPosition bounds)
         |> List.map Set.ofList
         |> Set.unionMany
         |> Set.union (calculateAntinodesOfFreq bounds f tailPositions)
