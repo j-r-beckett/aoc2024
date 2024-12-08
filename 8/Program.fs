@@ -29,18 +29,16 @@ let calculateAntinodes (row1, col1) (row2, col2) (bounds: int * int) =
 
 
 let calculateResonantAntinodes (row1, col1) (row2, col2) (bounds: int * int) =
-    let rec helper (row: int, col: int) (deltaRow, deltaCol) =
-        let antinode = row + deltaRow, col + deltaCol
-
-        match isInBounds bounds antinode with
-        | true -> [ antinode ] @ helper antinode (deltaRow, deltaCol)
-        | false -> []
-
     let deltaRow, deltaCol = row1 - row2, col1 - col2
 
-    helper (row1, col1) (deltaRow, deltaCol)
-    @ helper (row2, col2) (-deltaRow, -deltaCol)
-    @ [ (row1, col1); (row2, col2) ]
+    let rec helper (row: int, col: int) (direction: int) =
+        let antinode = row + deltaRow * direction, col + deltaCol * direction
+
+        match isInBounds bounds antinode with
+        | true -> [ antinode ] @ helper antinode direction
+        | false -> []
+
+    helper (row1, col1) 1 @ helper (row2, col2) -1 @ [ (row1, col1); (row2, col2) ]
 
 
 let rec calculateAntinodesOfFreq (bounds: int * int) f (positions: list<int * int>) =
