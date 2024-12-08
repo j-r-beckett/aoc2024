@@ -65,5 +65,5 @@ let countAllAntinodes f (map: Map) =
 
 
 let map = readMap "input.dat"
-map |> countAllAntinodes calculateAntinodes |> printfn "%A"
-map |> countAllAntinodes calculateResonantAntinodes |> printfn "%A"
+map |> countAllAntinodes calculateAntinodes |> part1
+map |> countAllAntinodes calculateResonantAntinodes |> part2
