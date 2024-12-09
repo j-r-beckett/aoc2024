@@ -35,7 +35,7 @@ let compressBlocks (blocks: list<option<int>>) =
         match value with
         | Some n -> numEmptiesSoFar, resultSoFar @ [ Some n ]
         | None -> numEmptiesSoFar + 1, resultSoFar @ [ fillers[numEmptiesSoFar] ]
-    // 0, resultSoFar @ [Some 5]
+
     (blocks[.. blocks.Length - numEmpty - 1] |> List.fold helper (0, []) |> snd)
     @ [ for _ in [ 0 .. numEmpty - 1 ] -> None ]
 
