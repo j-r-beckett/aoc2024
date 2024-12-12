@@ -26,15 +26,15 @@ let rec tryGetRegion (row, col) possibleRegions =
             tryGetRegion (row, col) tailRegions
 
 let findAllRegions map =
-    let rec helper regions positions =
+    let rec accumulateRegions regions positions =
         match positions with
         | [] -> regions
         | position :: tailPositions ->
             match tryGetRegion position regions with
-            | Some _ -> helper regions tailPositions
-            | None -> helper ([ exploreRegion map Set.empty position ] @ regions) tailPositions
+            | Some _ -> accumulateRegions regions tailPositions
+            | None -> accumulateRegions ([ exploreRegion map Set.empty position ] @ regions) tailPositions
 
-    helper
+    accumulateRegions
         []
         [ for row in [ 0 .. map.Length - 1 ] do
               for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
@@ -71,12 +71,12 @@ let countSides region =
 
     region |> Set.toList |> List.map countCorners |> List.sum
 
-let score f g regions =
+let calculateScore f g regions =
     regions |> List.map (fun region -> (f region) * (g region)) |> List.sum
 
 let map = readMap "input.dat"
 let regions = findAllRegions map
 
-score calculateArea (calculatePerimeter map) regions |> part1
+calculateScore calculateArea (calculatePerimeter map) regions |> part1
 
-score calculateArea countSides regions |> part2
+calculateScore calculateArea countSides regions |> part2
