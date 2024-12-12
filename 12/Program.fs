@@ -54,14 +54,14 @@ let calculatePerimeter map region =
     region |> Set.toList |> List.map countOuterBorders |> List.sum
 
 let countSides region =
-    let isCorner (p1, p2, p3) =
-        // p1 and p3 in region and p2 not in region, or p1 and p3 not in region
-        (Set.contains p1 region
-         && Set.contains p2 region |> not
-         && Set.contains p3 region)
-        || (Set.contains p1 region |> not && Set.contains p3 region |> not)
-
     let countCorners (row, col) =
+        let isCorner (p1, p2, p3) =
+            // p1 and p3 in region and p2 not in region, or p1 and p3 not in region
+            (Set.contains p1 region
+             && Set.contains p2 region |> not
+             && Set.contains p3 region)
+            || (Set.contains p1 region |> not && Set.contains p3 region |> not)
+
         [ ((row, col - 1), (row - 1, col - 1), (row - 1, col))
           ((row - 1, col), (row - 1, col + 1), (row, col + 1))
           ((row, col + 1), (row + 1, col + 1), (row + 1, col))
