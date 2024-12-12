@@ -16,7 +16,6 @@ let rec exploreRegion map visited (row, col) =
     |> List.filter (fun (adjRow, adjCol) -> not (Set.contains (adjRow, adjCol) visited))
     |> List.fold (fun soFar position -> exploreRegion map soFar position) (Set.add (row, col) visited)
 
-
 let rec tryGetRegion (row, col) possibleRegions =
     match possibleRegions with
     | [] -> None
