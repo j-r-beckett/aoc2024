@@ -76,7 +76,7 @@ let score f g regions =
     regions |> List.map (fun region -> (f region) * (g region)) |> List.sum
 
 let map = readMap "input.dat"
-let regions = map |> findAllRegions
+let regions = findAllRegions map
 
 score calculateArea (calculatePerimeter map) regions |> part1
 
