@@ -47,7 +47,6 @@ let minimumTokens (machine: Machine) =
             let aPresses = aPressesNumerator / aPressesDenominator
             Some(aPresses * 3L + bPresses)
 
-
 let totalMinimumTokens prizeShift machines =
     machines
     |> List.map (fun machine ->
@@ -58,7 +57,6 @@ let totalMinimumTokens prizeShift machines =
         | Some n -> n
         | None -> 0)
     |> List.sum
-
 
 let machines = readMachines "input.dat"
 machines |> totalMinimumTokens 0 |> part1
