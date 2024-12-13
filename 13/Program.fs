@@ -27,62 +27,25 @@ let readMachines filename =
     [ 0 .. lines.Length / 4 ]
     |> List.map (fun i -> parseMachine lines[i * 4 .. (i + 1) * 4 - 1])
 
-let rec gcd x y = if y = 0L then x else gcd y (x % y)
-
-type Fraction = { Num: int64; Den: int64 }
-
-let reduce (a: Fraction) =
-    let divisor = gcd a.Num a.Den
-
-    { Num = a.Num / divisor
-      Den = a.Den / divisor }
-
-let (^*) (a: Fraction) (b: Fraction) =
-    { Num = a.Num * b.Num
-      Den = a.Den * b.Den }
-    |> reduce
-
-let (^/) (a: Fraction) (b: Fraction) =
-    { Num = a.Num * b.Den
-      Den = a.Den * b.Num }
-    |> reduce
-
-let (^+) (a: Fraction) (b: Fraction) =
-    { Num = a.Num * b.Den + b.Num * a.Den
-      Den = a.Den * b.Den }
-    |> reduce
-
-let (^-) (a: Fraction) (b: Fraction) =
-    a ^+ ({ Num = -1; Den = 1 } ^* b) |> reduce
-
-let (&*) (row: list<Fraction>) (a: Fraction) = List.map ((^*) a) row
-let (&/) (row: list<Fraction>) (a: Fraction) = List.map (fun r -> r ^/ a) row
-
-let (&+) (row1: list<Fraction>) (row2: list<Fraction>) =
-    List.zip row1 row2 |> List.map (fun (a, b) -> a ^+ b)
-
-let (&-) (row1: list<Fraction>) (row2: list<Fraction>) =
-    List.zip row1 row2 |> List.map (fun (a, b) -> a ^- b)
-
 let minimumTokens (machine: Machine) =
-    let row1 =
-        [ machine.A.X; machine.B.X; machine.Prize.X ]
-        |> List.map (fun n -> { Num = n; Den = 1 })
+    let bPressesNumerator =
+        machine.Prize.Y * machine.A.X - machine.Prize.X * machine.A.Y
 
-    let row2 =
-        [ machine.A.Y; machine.B.Y; machine.Prize.Y ]
-        |> List.map (fun n -> { Num = n; Den = 1 })
+    let bPressesDenominator = machine.B.Y * machine.A.X - machine.B.X * machine.A.Y
 
-    let row1' = row1 &/ row1[0]
-    let row2' = row2 &- (row1' &* row2[0])
-    let row2'' = row2' &/ row2'[1]
-    let row1'' = row1' &- (row2'' &* row1'[1])
+    if bPressesNumerator % bPressesDenominator <> 0 then
+        None
+    else
+        let bPresses = bPressesNumerator / bPressesDenominator
 
-    let aPresses, bPresses = row1''[2], row2''[2]
+        let aPressesNumerator = machine.Prize.X - bPresses * machine.B.X
+        let aPressesDenominator = machine.A.X
 
-    match (aPresses.Den, bPresses.Den) with
-    | (1L, 1L) -> Some(aPresses.Num * 3L + bPresses.Num)
-    | _ -> None
+        if aPressesNumerator % aPressesDenominator <> 0 then
+            None
+        else
+            let aPresses = aPressesNumerator / aPressesDenominator
+            Some(aPresses * 3L + bPresses)
 
 
 let totalMinimumTokens prizeShift machines =
