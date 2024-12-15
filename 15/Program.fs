@@ -52,38 +52,7 @@ let printMap ((map: array<array<char>>), robotPos) =
 
         printfn ""
 
-
-let move isBoxFn nextBoxesFn isBoxSpotOpen pushBoxFn (map: array<array<char>>, robotPos) direction =
-    // printMap (map, robotPos)
-    // printfn "\n\n"
-
-    let rec findIfCanPushBoxes boxPos =
-        nextBoxesFn map boxPos direction
-        |> List.map (fun nextBoxPos -> isBoxSpotOpen map nextBoxPos || findIfCanPushBoxes nextBoxPos)
-        |> (fun lst -> (not lst.IsEmpty) && List.fold (&&) true lst)
-
-    let rec pushBoxes boxPos =
-        if isBoxFn map boxPos then
-            nextBoxesFn map boxPos direction |> List.map pushBoxes |> ignore
-            pushBoxFn map boxPos direction
-
-    let possibleNewRobotPos = robotPos +! direction
-
-    let canPushBoxes =
-        isBoxFn map possibleNewRobotPos && findIfCanPushBoxes possibleNewRobotPos
-
-    if canPushBoxes then
-        pushBoxes possibleNewRobotPos |> ignore
-
-    let newRobotPos =
-        if (mapAt map possibleNewRobotPos) = '.' || canPushBoxes then
-            possibleNewRobotPos
-        else
-            robotPos
-
-    map, newRobotPos
-
-let findGps (map: array<array<char>>) (boxRow, boxCol) = 
+let gpsValue (map: array<array<char>>) (boxRow, boxCol) = 
     if map[boxRow][boxCol] = 'O' || map[boxRow][boxCol] = '['
     then (100 * boxRow) + boxCol
     else 0
@@ -98,7 +67,7 @@ let solve moveFn (map: array<array<char>>) (directions: list<int * int>) =
 
     [ for row in [ 0 .. map.Length - 1 ] do
           for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
-    |> List.map (findGps map)
+    |> List.map (gpsValue map)
     |> List.sum
 
 let solvePart1 filename =
@@ -141,29 +110,7 @@ let solvePart1 filename =
 
 
 let solvePart2 filename =
-    let embiggen (map: array<array<char>>) =
-        let embiggenedMap = Array.create map.Length Array.empty
-
-        for rowIndex in [ 0 .. embiggenedMap.Length - 1 ] do
-            Array.set embiggenedMap rowIndex (Array.create (map[0].Length * 2) '.')
-
-        for row in [ 0 .. map.Length - 1 ] do
-            for col in [ 0 .. map[0].Length - 1 ] do
-                if map[row][col] = 'O' then
-                    Array.set embiggenedMap[row] (col * 2) '['
-                    Array.set embiggenedMap[row] (col * 2 + 1) ']'
-                else if map[row][col] = '#' then
-                    Array.set embiggenedMap[row] (col * 2) '#'
-                    Array.set embiggenedMap[row] (col * 2 + 1) '#'
-                else if map[row][col] = '@' then
-                    Array.set embiggenedMap[row] (col * 2) '@'
-
-        embiggenedMap
-
     let move (map: array<array<char>>, robotPos) direction = 
-        // printfn "\n\n\n\n"
-        // printMap (map, robotPos)
-
         let rowDir, colDir = direction
 
         let rec canPushBoxesHorizontally (boxRow, boxCol) =
@@ -232,7 +179,25 @@ let solvePart2 filename =
                 map, robotPos
         else map, robotPos
 
-    solve move (readMap filename |> embiggen) (readDirections filename)
+    let map = readMap filename
+
+    let embiggenedMap = Array.create map.Length Array.empty
+
+    for rowIndex in [ 0 .. embiggenedMap.Length - 1 ] do
+        Array.set embiggenedMap rowIndex (Array.create (map[0].Length * 2) '.')
+
+    for row in [ 0 .. map.Length - 1 ] do
+        for col in [ 0 .. map[0].Length - 1 ] do
+            if map[row][col] = 'O' then
+                Array.set embiggenedMap[row] (col * 2) '['
+                Array.set embiggenedMap[row] (col * 2 + 1) ']'
+            else if map[row][col] = '#' then
+                Array.set embiggenedMap[row] (col * 2) '#'
+                Array.set embiggenedMap[row] (col * 2 + 1) '#'
+            else if map[row][col] = '@' then
+                Array.set embiggenedMap[row] (col * 2) '@'
+
+    solve move embiggenedMap (readDirections filename)
 
 
 let filename = "input.dat"
