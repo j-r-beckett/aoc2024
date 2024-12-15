@@ -60,6 +60,9 @@ let printMap ((map: array<array<char>>), robotPos) =
 
 
 let move tryPushBoxesFn (map, robotPos) direction =
+    // printMap (map, robotPos)
+    // printfn "\n\n"
+
     tryPushBoxesFn map (robotPos +! direction) direction
 
     if mapAt map (robotPos +! direction) = '.' then
@@ -108,30 +111,38 @@ let solvePart1 filename =
 
 
 let solvePart2 filename =
-    let rec tryPushBoxes map (boxRow, boxCol) direction =
-        let rec findLastBoxPos currBoxPos =
-            let nextBoxPos = (currBoxPos +! direction)
+    let tryPushBoxes (map: array<array<char>>) (boxRow, boxCol) direction =
+        let rec tryPushBox (map: array<array<char>>) (boxRow, boxCol) direction =
+            if map[boxRow][boxCol] <> 'O'
+            then false
+            else
+                let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction
+                let push () =
+                    Array.set map[nextBoxRow] nextBoxCol 'O'
+                    Array.set map[boxRow] boxCol '.'
 
-            match mapAt map nextBoxPos with
-            | 'O' -> findLastBoxPos nextBoxPos
-            | '.' -> Some nextBoxPos
-            | '#' -> None
-            | _ -> raise (System.ArgumentException "Unknown map value")
+                if map[nextBoxRow][nextBoxCol] = 'O'
+                then 
+                    if tryPushBox map (nextBoxRow, nextBoxCol) direction
+                    then 
+                        push()
+                        true
+                    else
+                        false
+                else if map[nextBoxRow][nextBoxCol] = '.'
+                then
+                    push()
+                    true
+                else
+                    false
 
-        if map[boxRow][boxCol] <> 'O' then
-            ()
-        else
-            match findLastBoxPos (boxRow, boxCol) with
-            | Some(lastBoxRow, lastBoxCol) ->
-                Array.set map[boxRow] boxCol '.'
-                Array.set map[lastBoxRow] lastBoxCol 'O'
-            | None -> ()
-
+        tryPushBox map (boxRow, boxCol) direction |> ignore
+        ()
 
     let isBox (map: array<array<char>>) (row, col) = map[row][col] = 'O'
 
     solve isBox tryPushBoxes id filename
 
 
-solvePart1 "input.dat" |> part1
-solvePart2 "input.dat" |> part2
+solvePart1 "test.dat" |> part1
+solvePart2 "test.dat" |> part2
