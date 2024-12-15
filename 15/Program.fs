@@ -19,14 +19,13 @@ let readMap filename =
         |> List.map List.toArray
         |> List.toArray
 
-    let robotRow, robotCol =
-        [ for row in [ 0 .. map.Length - 1 ] do
-              for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
-        |> List.filter (fun (row, col) -> map[row][col] = '@')
-        |> List.head
+    map
 
-    Array.set map[robotRow] robotCol '.'
-    map, (robotRow, robotCol)
+let findRobot (map: array<array<char>>) =
+    [ for row in [ 0 .. map.Length - 1 ] do
+          for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
+    |> List.filter (fun (row, col) -> map[row][col] = '@')
+    |> List.head
 
 let readDirections filename =
     let direction (c: char) =
@@ -43,11 +42,6 @@ let readDirections filename =
     |> List.map direction
     |> List.choose id
 
-let readInput filename =
-    let map, robotPos = readMap filename
-    map, readDirections filename, robotPos
-
-
 let printMap ((map: array<array<char>>), robotPos) =
     for row in [ 0 .. map.Length - 1 ] do
         for col in [ 0 .. map[0].Length - 1 ] do
@@ -59,90 +53,188 @@ let printMap ((map: array<array<char>>), robotPos) =
         printfn ""
 
 
-let move tryPushBoxesFn (map, robotPos) direction =
+let move isBoxFn nextBoxesFn isBoxSpotOpen pushBoxFn (map: array<array<char>>, robotPos) direction =
     // printMap (map, robotPos)
     // printfn "\n\n"
 
-    tryPushBoxesFn map (robotPos +! direction) direction
+    let rec findIfCanPushBoxes boxPos =
+        nextBoxesFn map boxPos direction
+        |> List.map (fun nextBoxPos -> isBoxSpotOpen map nextBoxPos || findIfCanPushBoxes nextBoxPos)
+        |> (fun lst -> (not lst.IsEmpty) && List.fold (&&) true lst)
 
-    if mapAt map (robotPos +! direction) = '.' then
-        map, (robotPos +! direction)
-    else
-        map, robotPos
+    let rec pushBoxes boxPos =
+        if isBoxFn map boxPos then
+            nextBoxesFn map boxPos direction |> List.map pushBoxes |> ignore
+            pushBoxFn map boxPos direction
 
-let findGps (boxRow, boxCol) = (100 * boxRow) + boxCol 
+    let possibleNewRobotPos = robotPos +! direction
 
+    let canPushBoxes =
+        isBoxFn map possibleNewRobotPos && findIfCanPushBoxes possibleNewRobotPos
 
-let solve isBoxFn tryPushBoxesFn (enbiggenFn: array<array<char>> -> array<array<char>>) filename =
-    let map, directions, robotPos = readInput filename
-    directions |> List.fold (move tryPushBoxesFn) (map, robotPos) |> ignore // mutates map
-    let embiggenedMap = enbiggenFn map
+    if canPushBoxes then
+        pushBoxes possibleNewRobotPos |> ignore
 
-    [ for row in [ 0 .. embiggenedMap.Length - 1 ] do
-        for col in [ 0 .. embiggenedMap[0].Length - 1 ] -> row, col ]
-    |> List.filter (isBoxFn embiggenedMap)
-    |> List.map findGps
+    let newRobotPos =
+        if (mapAt map possibleNewRobotPos) = '.' || canPushBoxes then
+            possibleNewRobotPos
+        else
+            robotPos
+
+    map, newRobotPos
+
+let findGps (map: array<array<char>>) (boxRow, boxCol) = 
+    if map[boxRow][boxCol] = 'O' || map[boxRow][boxCol] = '['
+    then (100 * boxRow) + boxCol
+    else 0
+
+let solve moveFn (map: array<array<char>>) (directions: list<int * int>) =
+    let robotRow, robotCol = findRobot map
+    Array.set map[robotRow] robotCol '.'
+
+    directions
+    |> List.fold moveFn (map, (robotRow, robotCol))
+    |> ignore // mutates map
+
+    [ for row in [ 0 .. map.Length - 1 ] do
+          for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
+    |> List.map (findGps map)
     |> List.sum
 
 let solvePart1 filename =
-    let rec tryPushBoxes map (boxRow, boxCol) direction =
-        let rec findLastBoxPos currBoxPos =
-            let nextBoxPos = (currBoxPos +! direction)
+    let move (map: array<array<char>>, robotPos) direction =
+        let rec canPushBoxes (boxRow, boxCol) =
+            let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction
+            
+            if map[nextBoxRow][nextBoxCol] = '.'
+            then true
+            else if map[nextBoxRow][nextBoxCol] = '#'
+            then false
+            else canPushBoxes (nextBoxRow, nextBoxCol)
 
-            match mapAt map nextBoxPos with
-            | 'O' -> findLastBoxPos nextBoxPos
-            | '.' -> Some nextBoxPos
-            | '#' -> None
-            | _ -> raise (System.ArgumentException "Unknown map value")
+        let rec pushBoxes (boxRow, boxCol) = 
+            let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction
 
-        if map[boxRow][boxCol] <> 'O' then
-            ()
-        else
-            match findLastBoxPos (boxRow, boxCol) with
-            | Some(lastBoxRow, lastBoxCol) ->
+            let push () =
+                Array.set map[nextBoxRow] nextBoxCol 'O'
                 Array.set map[boxRow] boxCol '.'
-                Array.set map[lastBoxRow] lastBoxCol 'O'
-            | None -> ()
+            
+            if map[nextBoxRow][nextBoxCol] = '.'
+            then 
+                push()
+            else 
+                pushBoxes (nextBoxRow, nextBoxCol)
+                push()
 
 
-    let isBox (map: array<array<char>>) (row, col) = map[row][col] = 'O'
+        let nextPossibleRobotPos = robotPos +! direction
+        if mapAt map nextPossibleRobotPos = '.'
+        then map, nextPossibleRobotPos
+        else if mapAt map nextPossibleRobotPos = 'O' && canPushBoxes nextPossibleRobotPos
+        then 
+            pushBoxes nextPossibleRobotPos
+            map, nextPossibleRobotPos
+        else
+            map, robotPos
 
-    solve isBox tryPushBoxes id filename
+    solve move (readMap filename) (readDirections filename)
 
 
 let solvePart2 filename =
-    let tryPushBoxes (map: array<array<char>>) (boxRow, boxCol) direction =
-        let rec tryPushBox (map: array<array<char>>) (boxRow, boxCol) direction =
-            if map[boxRow][boxCol] <> 'O'
+    let embiggen (map: array<array<char>>) =
+        let embiggenedMap = Array.create map.Length Array.empty
+
+        for rowIndex in [ 0 .. embiggenedMap.Length - 1 ] do
+            Array.set embiggenedMap rowIndex (Array.create (map[0].Length * 2) '.')
+
+        for row in [ 0 .. map.Length - 1 ] do
+            for col in [ 0 .. map[0].Length - 1 ] do
+                if map[row][col] = 'O' then
+                    Array.set embiggenedMap[row] (col * 2) '['
+                    Array.set embiggenedMap[row] (col * 2 + 1) ']'
+                else if map[row][col] = '#' then
+                    Array.set embiggenedMap[row] (col * 2) '#'
+                    Array.set embiggenedMap[row] (col * 2 + 1) '#'
+                else if map[row][col] = '@' then
+                    Array.set embiggenedMap[row] (col * 2) '@'
+
+        embiggenedMap
+
+    let move (map: array<array<char>>, robotPos) direction = 
+        // printfn "\n\n\n\n"
+        // printMap (map, robotPos)
+
+        let rowDir, colDir = direction
+
+        let rec canPushBoxesHorizontally (boxRow, boxCol) =
+            let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction +! direction
+            
+            if map[nextBoxRow][nextBoxCol] = '.'
+            then true
+            else if map[nextBoxRow][nextBoxCol] = '#'
             then false
-            else
-                let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction
-                let push () =
-                    Array.set map[nextBoxRow] nextBoxCol 'O'
-                    Array.set map[boxRow] boxCol '.'
+            else canPushBoxesHorizontally (nextBoxRow, nextBoxCol)
 
-                if map[nextBoxRow][nextBoxCol] = 'O'
-                then 
-                    if tryPushBox map (nextBoxRow, nextBoxCol) direction
-                    then 
-                        push()
-                        true
-                    else
-                        false
-                else if map[nextBoxRow][nextBoxCol] = '.'
+        let rec pushBoxesHorizontally (boxRow, boxCol) = 
+            let push () =
+                Array.set map[boxRow] (boxCol + 2 * colDir) (map[boxRow][boxCol + colDir])
+                Array.set map[boxRow] (boxCol + colDir) (map[boxRow][boxCol])
+                Array.set map[boxRow] boxCol '.'
+            
+            if map[boxRow][boxCol + 2 * colDir] = '.'
+            then 
+                push()
+            else 
+                pushBoxesHorizontally (boxRow, boxCol + 2 * colDir)
+                push()
+
+        let rec canPushBoxesVertically (boxRow, boxCol) =
+            let helper (row, col) =
+                map[row][col] = '.' || ((map[row][col] = '[' || map[row][col] = ']') && canPushBoxesVertically (row, col))
+            if map[boxRow][boxCol] = '['
+            then canPushBoxesVertically (boxRow, boxCol + 1)
+            else helper (boxRow + rowDir, boxCol) && helper (boxRow + rowDir, boxCol - 1)
+
+
+        let rec pushBoxesVertically (boxRow, boxCol) =
+            let push () =
+                Array.set map[boxRow + rowDir] boxCol ']'
+                Array.set map[boxRow + rowDir] (boxCol - 1) '['
+                Array.set map[boxRow] boxCol '.'
+                Array.set map[boxRow] (boxCol - 1) '.'
+
+            if map[boxRow][boxCol] = '['
+            then pushBoxesVertically (boxRow, boxCol + 1)
+            else if map[boxRow][boxCol] = ']'
                 then
+                    if map[boxRow + rowDir][boxCol] = ']' || map[boxRow + rowDir][boxCol] = '['
+                    then
+                        pushBoxesVertically (boxRow + rowDir, boxCol)
+                    if map[boxRow + rowDir][boxCol - 1] = ']'
+                    then
+                        pushBoxesVertically (boxRow + rowDir, boxCol - 1)
                     push()
-                    true
-                else
-                    false
 
-        tryPushBox map (boxRow, boxCol) direction |> ignore
-        ()
+        let nextPossibleRobotPos = robotPos +! direction
+        if mapAt map nextPossibleRobotPos = '.'
+        then map, nextPossibleRobotPos
+        else if (mapAt map nextPossibleRobotPos = '[' || mapAt map nextPossibleRobotPos = ']') 
+        then
+            if fst direction = 0 && canPushBoxesHorizontally nextPossibleRobotPos
+            then 
+                pushBoxesHorizontally nextPossibleRobotPos
+                map, nextPossibleRobotPos
+            else if fst direction <> 0 && canPushBoxesVertically nextPossibleRobotPos
+            then
+                pushBoxesVertically nextPossibleRobotPos
+                map, nextPossibleRobotPos
+            else
+                map, robotPos
+        else map, robotPos
 
-    let isBox (map: array<array<char>>) (row, col) = map[row][col] = 'O'
-
-    solve isBox tryPushBoxes id filename
+    solve move (readMap filename |> embiggen) (readDirections filename)
 
 
-solvePart1 "test.dat" |> part1
-solvePart2 "test.dat" |> part2
+let filename = "input.dat"
+solvePart1 filename |> part1
+solvePart2 filename |> part2
