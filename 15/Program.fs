@@ -59,15 +59,30 @@ let printMap ((map: array<array<char>>), robotPos) =
         printfn ""
 
 
-let move (map, robotPos) direction =
-    let rec canMove fromPosition direction =
-        let next = mapAt map (fromPosition +! direction)
+let move tryPushBoxesFn (map, robotPos) direction =
+    tryPushBoxesFn map (robotPos +! direction) direction
 
-        if next = '.' then true
-        else if next = '#' then false
-        else canMove (fromPosition +! direction) direction
+    if mapAt map (robotPos +! direction) = '.' then
+        map, (robotPos +! direction)
+    else
+        map, robotPos
 
-    let rec tryPushBoxes (boxRow, boxCol) direction =
+let findGps (boxRow, boxCol) = (100 * boxRow) + boxCol 
+
+
+let solve isBoxFn tryPushBoxesFn (enbiggenFn: array<array<char>> -> array<array<char>>) filename =
+    let map, directions, robotPos = readInput filename
+    directions |> List.fold (move tryPushBoxesFn) (map, robotPos) |> ignore // mutates map
+    let embiggenedMap = enbiggenFn map
+
+    [ for row in [ 0 .. embiggenedMap.Length - 1 ] do
+        for col in [ 0 .. embiggenedMap[0].Length - 1 ] -> row, col ]
+    |> List.filter (isBoxFn embiggenedMap)
+    |> List.map findGps
+    |> List.sum
+
+let solvePart1 filename =
+    let rec tryPushBoxes map (boxRow, boxCol) direction =
         let rec findLastBoxPos currBoxPos =
             let nextBoxPos = (currBoxPos +! direction)
 
@@ -77,28 +92,46 @@ let move (map, robotPos) direction =
             | '#' -> None
             | _ -> raise (System.ArgumentException "Unknown map value")
 
-        match findLastBoxPos (boxRow, boxCol) with
-        | Some(lastBoxRow, lastBoxCol) ->
-            Array.set map[boxRow] boxCol '.'
-            Array.set map[lastBoxRow] lastBoxCol 'O'
-        | None -> ()
+        if map[boxRow][boxCol] <> 'O' then
+            ()
+        else
+            match findLastBoxPos (boxRow, boxCol) with
+            | Some(lastBoxRow, lastBoxCol) ->
+                Array.set map[boxRow] boxCol '.'
+                Array.set map[lastBoxRow] lastBoxCol 'O'
+            | None -> ()
 
-    if mapAt map (robotPos +! direction) = 'O' then
-        tryPushBoxes (robotPos +! direction) direction
 
-    if mapAt map (robotPos +! direction) = '.' then
-        map, (robotPos +! direction)
-    else
-        map, robotPos
+    let isBox (map: array<array<char>>) (row, col) = map[row][col] = 'O'
 
-let findGps (boxRow, boxCol) = (100 * boxRow) + boxCol
+    solve isBox tryPushBoxes id filename
 
-let map, directions, robotPos = readInput "input.dat"
-directions |> List.fold move (map, robotPos) |> ignore // mutates map
 
-[ for row in [ 0 .. map.Length - 1 ] do
-      for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
-|> List.filter (fun (row, col) -> map[row][col] = 'O')
-|> List.map findGps
-|> List.sum
-|> part1
+let solvePart2 filename =
+    let rec tryPushBoxes map (boxRow, boxCol) direction =
+        let rec findLastBoxPos currBoxPos =
+            let nextBoxPos = (currBoxPos +! direction)
+
+            match mapAt map nextBoxPos with
+            | 'O' -> findLastBoxPos nextBoxPos
+            | '.' -> Some nextBoxPos
+            | '#' -> None
+            | _ -> raise (System.ArgumentException "Unknown map value")
+
+        if map[boxRow][boxCol] <> 'O' then
+            ()
+        else
+            match findLastBoxPos (boxRow, boxCol) with
+            | Some(lastBoxRow, lastBoxCol) ->
+                Array.set map[boxRow] boxCol '.'
+                Array.set map[lastBoxRow] lastBoxCol 'O'
+            | None -> ()
+
+
+    let isBox (map: array<array<char>>) (row, col) = map[row][col] = 'O'
+
+    solve isBox tryPushBoxes id filename
+
+
+solvePart1 "input.dat" |> part1
+solvePart2 "input.dat" |> part2
