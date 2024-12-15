@@ -77,7 +77,7 @@ let largestBlob robots =
         [ (robotRow + 1L, robotCol)
           (robotRow - 1L, robotCol)
           (robotRow, robotCol - 1L)
-          (robotRow, robotCol + 1L);
+          (robotRow, robotCol + 1L)
           (robotRow + 1L, robotCol - 1L)
           (robotRow + 1L, robotCol + 1L)
           (robotRow - 1L, robotCol - 1L)
@@ -119,22 +119,25 @@ let largestBlob robots =
 
 let robots = readRobots "input.dat"
 let numRows, numCols = 103L, 101L
+// let numRows, numCols = 7L, 11L
 
 robots
 |> simulate (numRows, numCols) 100
 |> safetyFactor (numRows, numCols)
 |> part1
 
-robots |> printRobots (numRows, numCols)
-// for seconds in [ 0..10000 ] do
-//     if seconds % 50 = 0
-//     then printfn "seconds progress: %A" seconds
-//     let newRobots = robots |> simulate (numRows, numCols) seconds
-//     let maxBlobSize = newRobots |> List.map (fun robot -> robot.Position) |> largestBlob
-//     if maxBlobSize > 10
-//     then
-//         printfn "seconds: %A" seconds
-//         printfn "max blob size: %A" maxBlobSize
-//         printfn ""
-//         printRobots (numRows, numCols) newRobots
-//         printfn "\n\n-------\n\n"
+// robots |> List.map (fun robot -> robot.Position) |> largestBlob |> printfn "%A"
+// robots |> printRobots (numRows, numCols)
+for seconds in [ 0..10000 ] do
+    if seconds % 100 = 0 then
+        printfn "seconds progress: %A" seconds
+
+    let newRobots = robots |> simulate (numRows, numCols) seconds
+    let maxBlobSize = newRobots |> List.map (fun robot -> robot.Position) |> largestBlob
+
+    if maxBlobSize > 150 then
+        printfn "seconds: %A" seconds
+        printfn "max blob size: %A" maxBlobSize
+        printfn ""
+        printRobots (numRows, numCols) newRobots
+        printfn "\n\n-------\n\n"
