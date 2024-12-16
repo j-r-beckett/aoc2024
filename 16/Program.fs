@@ -1,5 +1,6 @@
 ﻿open Common.Functions
 open FSharpx.Collections
+open System.Collections.Generic
 open System
 
 let readMap filename =
@@ -95,7 +96,7 @@ let manhattanDistance (currentState: State) (destination: Position) =
     (abs (destRow - currRow)) + (abs (destCol - currCol))
 
 
-let printMap (map: GridMap) (currState: State) (visited: Set<Position>)=
+let printMap (map: GridMap) (currState: State) (visited: Set<Position>) =
     for row in [ 0 .. map.Length - 1 ] do
         for col in [ 0 .. map[0].Length - 1 ] do
             if (row, col) = currState.Position then
@@ -107,8 +108,8 @@ let printMap (map: GridMap) (currState: State) (visited: Set<Position>)=
                     | Left -> "<"
 
                 printf "%s" posRep
-            else if Set.contains (row, col) visited
-            then printf "O"
+            else if Set.contains (row, col) visited then
+                printf "O"
             else
                 printf "%s" (map[row][col] |> string)
 
@@ -135,16 +136,45 @@ let aStar (map: GridMap) (startState: State) (destination: Position) =
                     |> List.fold (fun frontier element -> PriorityQueue.insert element frontier) poppedFrontier
 
                 let newSeen =
-                    Set.union seen (adjacentStates |> List.map (fun adj -> adj.Position, adj.Direction) |> Set.ofList)
+                    Set.union
+                        seen
+                        (adjacentStates
+                         |> List.map (fun adj -> adj.Position, adj.Direction)
+                         |> Set.ofList)
 
-                findBestEndState newFrontier newSeen 
-        | None -> raise (InvalidOperationException ("Destination not found"))
+                findBestEndState newFrontier newSeen
+        | None -> raise (InvalidOperationException("Destination not found"))
 
     let frontier =
         PriorityQueue.empty false
         |> PriorityQueue.insert (manhattanDistance startState destination, startState)
 
     findBestEndState frontier (Set.ofList [ (startState.Position, startState.Direction) ])
+
+let findBestPaths (map: GridMap) (startState: State) (destination: Position) (bestFinalScore: Score) =
+    let bestScores = new Dictionary<Position * Direction, Score>()
+    bestScores.Add((startState.Position, startState.Direction), startState.Score)
+
+    let rec dfs (currState: State) (path: list<State>) =
+        if currState.Position = destination && currState.Score = bestFinalScore then
+            [ path ]
+        else if currState.Score > bestFinalScore then
+            []
+        else
+            let nextStates = adjacentStates map currState
+                            |> List.filter (fun nextState -> match Dictionary.tryFind (nextState.Position, nextState.Direction) bestScores with
+                                                                    | None -> true
+                                                                    | Some score -> nextState.Score <= score)
+
+            for nextState in nextStates do
+                bestScores[(nextState.Position, nextState.Direction)] <- nextState.Score
+
+            nextStates
+            |> List.map (fun nextState -> dfs nextState (path @ [ nextState ]))
+            |> List.concat
+
+    dfs startState [ startState ]
+
 
 let map = readMap "input.dat"
 
@@ -163,5 +193,12 @@ let cleanMap =
             else c))
         map
 
-let endState = aStar cleanMap startState endPosition 
+let endState = aStar cleanMap startState endPosition
 endState.Score |> part1
+
+findBestPaths cleanMap startState endState.Position endState.Score
+|> List.concat
+|> List.map _.Position
+|> Set.ofList
+|> Set.count
+|> part2
