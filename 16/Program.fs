@@ -14,10 +14,9 @@ let find (map: list<list<char>>) (mapValue: char) =
     |> List.filter (fun (row, col) -> map[row][col] = mapValue)
     |> List.head
 
-type Map = list<list<char>>
+type GridMap = list<list<char>>
 
 type Position = int * int
-
 
 type Score = int
 
@@ -65,7 +64,7 @@ let rotateLeft state =
         Direction = rotate false state.Direction
         Score = state.Score + 1000 }
 
-let forward (map: Map) (state: State) =
+let forward (map: GridMap) (state: State) =
     let (nextRow, nextCol) = state.Position +! state.Direction
 
     if
@@ -83,7 +82,7 @@ let forward (map: Map) (state: State) =
         None
 
 
-let adjacentStates (map: Map) (state: State) =
+let adjacentStates (map: GridMap) (state: State) =
     let rotationStates = [ rotateLeft state; rotateRight state ]
 
     match forward map state with
@@ -96,7 +95,7 @@ let manhattanDistance (currentState: State) (destination: Position) =
     (abs (destRow - currRow)) + (abs (destCol - currCol))
 
 
-let printMap (map: Map) (currState: State) =
+let printMap (map: GridMap) (currState: State) (visited: Set<Position>)=
     for row in [ 0 .. map.Length - 1 ] do
         for col in [ 0 .. map[0].Length - 1 ] do
             if (row, col) = currState.Position then
@@ -108,6 +107,8 @@ let printMap (map: Map) (currState: State) =
                     | Left -> "<"
 
                 printf "%s" posRep
+            else if Set.contains (row, col) visited
+            then printf "O"
             else
                 printf "%s" (map[row][col] |> string)
 
@@ -115,41 +116,51 @@ let printMap (map: Map) (currState: State) =
 
     printfn ""
 
-let aStar (map: Map) (startState: State) (destination: Position) =
-    let rec findEnd frontier (seen: Set<Position * Direction>) =
-        match PriorityQueue.tryPop frontier with
-        | Some((_, nextState), poppedFrontier) ->
-            if nextState.Position = destination then
-                nextState
-            else
-                // if (fst nextState.Position >= 5) && (snd nextState.Position >= 3) then
-                //     printMap map nextState
 
-                let newAdjacent =
-                    adjacentStates map nextState
+type OrderedState = {State: State; Predecessor: Option<OrderedState>}
+
+let aStar (map: GridMap) (startState: State) (destination: Position) =
+    let rec findEnd frontier (seen: Set<Position * Direction>) =
+        let rec allShortestPaths frontier bestScore =
+            let rec path (state: OrderedState) =
+                match state.Predecessor with
+                | None -> []
+                | Some pred -> (path pred) @ [state.State.Position]
+
+            match PriorityQueue.tryPop frontier with
+            | None -> []
+            | Some((_, frontierState), poppedFrontier) -> 
+                if frontierState.State.Position = destination && frontierState.State.Score = bestScore
+                then [path frontierState] @ allShortestPaths poppedFrontier bestScore
+                else []
+
+        match PriorityQueue.tryPop frontier with
+        | Some((_, frontierState: OrderedState), poppedFrontier) ->
+            if frontierState.State.Position = destination then
+                frontierState.State.Score, allShortestPaths frontier frontierState.State.Score
+            else
+                let adjacentStates =
+                    adjacentStates map frontierState.State
                     |> List.filter (fun adj -> Set.contains (adj.Position, adj.Direction) seen |> not)
 
                 let newFrontier =
-                    newAdjacent
-                    |> List.map (fun adj -> (adj.Score + (manhattanDistance adj destination), adj))
-                    |> List.fold (fun frontier adjState -> PriorityQueue.insert adjState frontier) poppedFrontier
+                    adjacentStates
+                    |> List.map (fun adj -> (adj.Score + (manhattanDistance adj destination), {State = adj; Predecessor = Some frontierState}))
+                    |> List.fold (fun frontier element -> PriorityQueue.insert element frontier) poppedFrontier
 
                 let newSeen =
-                    Set.union seen (newAdjacent |> List.map (fun adj -> (adj.Position, adj.Direction)) |> Set.ofList)
+                    Set.union seen (adjacentStates |> List.map (fun adj -> (adj.Position, adj.Direction)) |> Set.ofList)
 
                 findEnd newFrontier newSeen
         | None -> raise (InvalidOperationException("destination unreachable"))
 
     let frontier =
         PriorityQueue.empty false
-        |> PriorityQueue.insert (manhattanDistance startState destination, startState)
+        |> PriorityQueue.insert (manhattanDistance startState destination, {State = startState; Predecessor = None})
 
     findEnd frontier (Set.ofList [ (startState.Position, startState.Direction) ])
 
-
-
-
-let map = readMap "input.dat"
+let map = readMap "test.dat"
 
 let startState =
     { Position = find map 'S'
@@ -166,4 +177,13 @@ let cleanMap =
             else c))
         map
 
-aStar cleanMap startState endPosition |> _.Score |> part1
+let bestScore, shortestPaths = aStar cleanMap startState endPosition 
+bestScore |> part1
+// let visited = shortestPaths |> List.concat |> List.map (fun state -> state.Position) |> Set.ofList
+// for state in shortestPaths[0] do
+//     printfn "%A; " state
+// printfn ""
+let visited = shortestPaths |> List.concat |> Set.ofList
+visited |> Set.count |> printfn "%A"
+
+// printMap map startState visited
