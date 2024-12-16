@@ -120,45 +120,53 @@ let printMap (map: GridMap) (currState: State) (visited: Set<Position>)=
 type OrderedState = {State: State; Predecessor: Option<OrderedState>}
 
 let aStar (map: GridMap) (startState: State) (destination: Position) =
-    let rec findEnd frontier (seen: Set<Position * Direction>) =
-        let rec allShortestPaths frontier bestScore =
-            let rec path (state: OrderedState) =
-                match state.Predecessor with
-                | None -> []
-                | Some pred -> (path pred) @ [state.State.Position]
+    // let rec allShortestPaths frontier bestScore =
+    //     let rec path (state: OrderedState) =
+    //         match state.Predecessor with
+    //         | None -> []
+    //         | Some pred -> (path pred) @ [state.State.Position]
 
-            match PriorityQueue.tryPop frontier with
-            | None -> []
-            | Some((_, frontierState), poppedFrontier) -> 
-                if frontierState.State.Position = destination && frontierState.State.Score = bestScore
-                then [path frontierState] @ allShortestPaths poppedFrontier bestScore
-                else []
+    //     match PriorityQueue.tryPop frontier with
+    //     | None -> []
+    //     | Some((_, frontierState), poppedFrontier) -> 
+    //         if frontierState.State.Position = destination && frontierState.State.Score = bestScore
+    //         then [path frontierState] @ allShortestPaths poppedFrontier bestScore
+    //         else []
 
+    let rec findEndStates frontier (seen: Set<OrderedState>) (bestScoreOption: Option<int>) =
+        printfn "frontier size: %A" (frontier |> Seq.toList |> List.length)
         match PriorityQueue.tryPop frontier with
         | Some((_, frontierState: OrderedState), poppedFrontier) ->
-            if frontierState.State.Position = destination then
-                frontierState.State.Score, allShortestPaths frontier frontierState.State.Score
+            if frontierState.State.Position = (13, 8)
+            then printfn "%A" frontierState.State
+
+            if frontierState.State.Position = destination && (Option.isNone bestScoreOption || frontierState.State.Score = bestScoreOption.Value) then
+                [frontierState] @ findEndStates poppedFrontier seen (Some frontierState.State.Score)
             else
-                let adjacentStates =
-                    adjacentStates map frontierState.State
-                    |> List.filter (fun adj -> Set.contains (adj.Position, adj.Direction) seen |> not)
+                if Option.isNone bestScoreOption || (frontierState.State.Score <= bestScoreOption.Value)
+                then
+                    let adjacentStates =
+                        adjacentStates map frontierState.State
+                        |> List.filter (fun adj -> Set.contains {State = adj; Predecessor = Some frontierState} seen |> not)
 
-                let newFrontier =
-                    adjacentStates
-                    |> List.map (fun adj -> (adj.Score + (manhattanDistance adj destination), {State = adj; Predecessor = Some frontierState}))
-                    |> List.fold (fun frontier element -> PriorityQueue.insert element frontier) poppedFrontier
+                    let newFrontier =
+                        adjacentStates
+                        |> List.map (fun adj -> (adj.Score + (manhattanDistance adj destination), {State = adj; Predecessor = Some frontierState}))
+                        |> List.fold (fun frontier element -> PriorityQueue.insert element frontier) poppedFrontier
 
-                let newSeen =
-                    Set.union seen (adjacentStates |> List.map (fun adj -> (adj.Position, adj.Direction)) |> Set.ofList)
+                    let newSeen =
+                        Set.union seen (adjacentStates |> List.map (fun adj -> {State = adj; Predecessor = Some frontierState}) |> Set.ofList)
 
-                findEnd newFrontier newSeen
-        | None -> raise (InvalidOperationException("destination unreachable"))
+                    findEndStates newFrontier newSeen bestScoreOption
+                else
+                    findEndStates poppedFrontier seen bestScoreOption
+        | None -> []
 
     let frontier =
         PriorityQueue.empty false
         |> PriorityQueue.insert (manhattanDistance startState destination, {State = startState; Predecessor = None})
 
-    findEnd frontier (Set.ofList [ (startState.Position, startState.Direction) ])
+    findEndStates frontier (Set.ofList [ {State = startState; Predecessor = None} ]) None
 
 let map = readMap "test.dat"
 
@@ -177,13 +185,14 @@ let cleanMap =
             else c))
         map
 
-let bestScore, shortestPaths = aStar cleanMap startState endPosition 
-bestScore |> part1
+let endStates = aStar cleanMap startState endPosition 
+endStates |> List.length |> printfn "%A"
+endStates |> List.head |> _.State.Score |> part1
 // let visited = shortestPaths |> List.concat |> List.map (fun state -> state.Position) |> Set.ofList
 // for state in shortestPaths[0] do
 //     printfn "%A; " state
 // printfn ""
-let visited = shortestPaths |> List.concat |> Set.ofList
-visited |> Set.count |> printfn "%A"
+// let visited = shortestPaths |> List.concat |> Set.ofList
+// visited |> Set.count |> printfn "%A"
 
 // printMap map startState visited
