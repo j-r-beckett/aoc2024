@@ -147,23 +147,29 @@ let rec prettyPrint (program: list<int>) =
     if program.IsEmpty
     then []
     else 
-        let instruction = match program[0] with
-                                | 0 -> "adv"
-                                | 1 -> "bxl"
-                                | 2 -> "bst"
-                                | 3 -> "jnz"
-                                | 4 -> "bxc"
-                                | 5 -> "out"
-                                | 6 -> "bdv"
-                                | 7 -> "cdv"
-                                | _ -> raise (ArgumentException(sprintf "Unknown instruction %i" program[0]))
-        let operand = match program[1] with
-                            | n when n >= 0 && n <= 3 -> string n
-                            | 4 -> "A"
-                            | 5 -> "B"
-                            | 6 -> "C"
-                            | _ -> raise (ArgumentException(sprintf "Unknown operand %i" program[1]))
-        [sprintf "%s %s" instruction operand] @ prettyPrint program[2..]
+        let getOperand n combo =
+            if combo
+            then
+                match n with
+                | _ when n >= 0 && n <= 3 -> string n
+                | 4 -> "A"
+                | 5 -> "B"
+                | 6 -> "C"
+                | _ -> raise (ArgumentException(sprintf "Unknown operand %i" program[1]))
+            else
+                string n
+
+        let instruction, isCombo = match program[0] with
+                                    | 0 -> "adv", true
+                                    | 1 -> "bxl", false 
+                                    | 2 -> "bst", true
+                                    | 3 -> "jnz", false
+                                    | 4 -> "bxc", false
+                                    | 5 -> "out", true
+                                    | 6 -> "bdv", true
+                                    | 7 -> "cdv", true
+                                    | _ -> raise (ArgumentException(sprintf "Unknown instruction %i" program[0]))
+        [sprintf "%s %s" instruction (getOperand program[1] isCombo)] @ prettyPrint program[2..]
 
 
 let startState, program = readInput "input.dat"
@@ -174,4 +180,4 @@ evaluate startState program
 |> part1
 
 prettyPrint program |> String.concat "\n" |> printfn "%s"
-// findSmallestA startState program |> part2
+findSmallestA startState program |> part2
