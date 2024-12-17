@@ -143,6 +143,29 @@ let findSmallestA state program =
     
     helper 1
 
+let rec prettyPrint (program: list<int>) =
+    if program.IsEmpty
+    then []
+    else 
+        let instruction = match program[0] with
+                                | 0 -> "adv"
+                                | 1 -> "bxl"
+                                | 2 -> "bst"
+                                | 3 -> "jnz"
+                                | 4 -> "bxc"
+                                | 5 -> "out"
+                                | 6 -> "bdv"
+                                | 7 -> "cdv"
+                                | _ -> raise (ArgumentException(sprintf "Unknown instruction %i" program[0]))
+        let operand = match program[1] with
+                            | n when n >= 0 && n <= 3 -> string n
+                            | 4 -> "A"
+                            | 5 -> "B"
+                            | 6 -> "C"
+                            | _ -> raise (ArgumentException(sprintf "Unknown operand %i" program[1]))
+        [sprintf "%s %s" instruction operand] @ prettyPrint program[2..]
+
+
 let startState, program = readInput "input.dat"
 // 207303137 incorrect
 evaluate startState program
@@ -150,4 +173,5 @@ evaluate startState program
 |> String.concat ","
 |> part1
 
-findSmallestA startState program |> part2
+prettyPrint program |> String.concat "\n" |> printfn "%s"
+// findSmallestA startState program |> part2
