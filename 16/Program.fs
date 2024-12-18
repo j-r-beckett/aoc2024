@@ -161,10 +161,12 @@ let findBestPaths (map: GridMap) (startState: State) (destination: Position) (be
         else if currState.Score > bestFinalScore then
             []
         else
-            let nextStates = adjacentStates map currState
-                            |> List.filter (fun nextState -> match Dictionary.tryFind (nextState.Position, nextState.Direction) bestScores with
-                                                                    | None -> true
-                                                                    | Some score -> nextState.Score <= score)
+            let nextStates =
+                adjacentStates map currState
+                |> List.filter (fun nextState ->
+                    match Dictionary.tryFind (nextState.Position, nextState.Direction) bestScores with
+                    | None -> true
+                    | Some score -> nextState.Score <= score)
 
             for nextState in nextStates do
                 bestScores[(nextState.Position, nextState.Direction)] <- nextState.Score

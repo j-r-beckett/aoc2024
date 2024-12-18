@@ -52,18 +52,17 @@ let printMap ((map: array<array<char>>), robotPos) =
 
         printfn ""
 
-let gpsValue (map: array<array<char>>) (boxRow, boxCol) = 
-    if map[boxRow][boxCol] = 'O' || map[boxRow][boxCol] = '['
-    then (100 * boxRow) + boxCol
-    else 0
+let gpsValue (map: array<array<char>>) (boxRow, boxCol) =
+    if map[boxRow][boxCol] = 'O' || map[boxRow][boxCol] = '[' then
+        (100 * boxRow) + boxCol
+    else
+        0
 
 let solve moveFn (map: array<array<char>>) (directions: list<int * int>) =
     let robotRow, robotCol = findRobot map
     Array.set map[robotRow] robotCol '.'
 
-    directions
-    |> List.fold moveFn (map, (robotRow, robotCol))
-    |> ignore // mutates map
+    directions |> List.fold moveFn (map, (robotRow, robotCol)) |> ignore // mutates map
 
     [ for row in [ 0 .. map.Length - 1 ] do
           for col in [ 0 .. map[0].Length - 1 ] -> row, col ]
@@ -74,33 +73,30 @@ let solvePart1 filename =
     let move (map: array<array<char>>, robotPos) direction =
         let rec canPushBoxes (boxRow, boxCol) =
             let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction
-            
-            if map[nextBoxRow][nextBoxCol] = '.'
-            then true
-            else if map[nextBoxRow][nextBoxCol] = '#'
-            then false
+
+            if map[nextBoxRow][nextBoxCol] = '.' then true
+            else if map[nextBoxRow][nextBoxCol] = '#' then false
             else canPushBoxes (nextBoxRow, nextBoxCol)
 
-        let rec pushBoxes (boxRow, boxCol) = 
+        let rec pushBoxes (boxRow, boxCol) =
             let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction
 
             let push () =
                 Array.set map[nextBoxRow] nextBoxCol 'O'
                 Array.set map[boxRow] boxCol '.'
-            
-            if map[nextBoxRow][nextBoxCol] = '.'
-            then 
-                push()
-            else 
+
+            if map[nextBoxRow][nextBoxCol] = '.' then
+                push ()
+            else
                 pushBoxes (nextBoxRow, nextBoxCol)
-                push()
+                push ()
 
 
         let nextPossibleRobotPos = robotPos +! direction
-        if mapAt map nextPossibleRobotPos = '.'
-        then map, nextPossibleRobotPos
-        else if mapAt map nextPossibleRobotPos = 'O' && canPushBoxes nextPossibleRobotPos
-        then 
+
+        if mapAt map nextPossibleRobotPos = '.' then
+            map, nextPossibleRobotPos
+        else if mapAt map nextPossibleRobotPos = 'O' && canPushBoxes nextPossibleRobotPos then
             pushBoxes nextPossibleRobotPos
             map, nextPossibleRobotPos
         else
@@ -110,37 +106,38 @@ let solvePart1 filename =
 
 
 let solvePart2 filename =
-    let move (map: array<array<char>>, robotPos) direction = 
+    let move (map: array<array<char>>, robotPos) direction =
         let rowDir, colDir = direction
 
         let rec canPushBoxesHorizontally (boxRow, boxCol) =
             let nextBoxRow, nextBoxCol = (boxRow, boxCol) +! direction +! direction
-            
-            if map[nextBoxRow][nextBoxCol] = '.'
-            then true
-            else if map[nextBoxRow][nextBoxCol] = '#'
-            then false
+
+            if map[nextBoxRow][nextBoxCol] = '.' then true
+            else if map[nextBoxRow][nextBoxCol] = '#' then false
             else canPushBoxesHorizontally (nextBoxRow, nextBoxCol)
 
-        let rec pushBoxesHorizontally (boxRow, boxCol) = 
+        let rec pushBoxesHorizontally (boxRow, boxCol) =
             let push () =
                 Array.set map[boxRow] (boxCol + 2 * colDir) (map[boxRow][boxCol + colDir])
                 Array.set map[boxRow] (boxCol + colDir) (map[boxRow][boxCol])
                 Array.set map[boxRow] boxCol '.'
-            
-            if map[boxRow][boxCol + 2 * colDir] = '.'
-            then 
-                push()
-            else 
+
+            if map[boxRow][boxCol + 2 * colDir] = '.' then
+                push ()
+            else
                 pushBoxesHorizontally (boxRow, boxCol + 2 * colDir)
-                push()
+                push ()
 
         let rec canPushBoxesVertically (boxRow, boxCol) =
             let helper (row, col) =
-                map[row][col] = '.' || ((map[row][col] = '[' || map[row][col] = ']') && canPushBoxesVertically (row, col))
-            if map[boxRow][boxCol] = '['
-            then canPushBoxesVertically (boxRow, boxCol + 1)
-            else helper (boxRow + rowDir, boxCol) && helper (boxRow + rowDir, boxCol - 1)
+                map[row][col] = '.'
+                || ((map[row][col] = '[' || map[row][col] = ']')
+                    && canPushBoxesVertically (row, col))
+
+            if map[boxRow][boxCol] = '[' then
+                canPushBoxesVertically (boxRow, boxCol + 1)
+            else
+                helper (boxRow + rowDir, boxCol) && helper (boxRow + rowDir, boxCol - 1)
 
 
         let rec pushBoxesVertically (boxRow, boxCol) =
@@ -150,34 +147,32 @@ let solvePart2 filename =
                 Array.set map[boxRow] boxCol '.'
                 Array.set map[boxRow] (boxCol - 1) '.'
 
-            if map[boxRow][boxCol] = '['
-            then pushBoxesVertically (boxRow, boxCol + 1)
-            else if map[boxRow][boxCol] = ']'
-                then
-                    if map[boxRow + rowDir][boxCol] = ']' || map[boxRow + rowDir][boxCol] = '['
-                    then
-                        pushBoxesVertically (boxRow + rowDir, boxCol)
-                    if map[boxRow + rowDir][boxCol - 1] = ']'
-                    then
-                        pushBoxesVertically (boxRow + rowDir, boxCol - 1)
-                    push()
+            if map[boxRow][boxCol] = '[' then
+                pushBoxesVertically (boxRow, boxCol + 1)
+            else if map[boxRow][boxCol] = ']' then
+                if map[boxRow + rowDir][boxCol] = ']' || map[boxRow + rowDir][boxCol] = '[' then
+                    pushBoxesVertically (boxRow + rowDir, boxCol)
+
+                if map[boxRow + rowDir][boxCol - 1] = ']' then
+                    pushBoxesVertically (boxRow + rowDir, boxCol - 1)
+
+                push ()
 
         let nextPossibleRobotPos = robotPos +! direction
-        if mapAt map nextPossibleRobotPos = '.'
-        then map, nextPossibleRobotPos
-        else if (mapAt map nextPossibleRobotPos = '[' || mapAt map nextPossibleRobotPos = ']') 
-        then
-            if fst direction = 0 && canPushBoxesHorizontally nextPossibleRobotPos
-            then 
+
+        if mapAt map nextPossibleRobotPos = '.' then
+            map, nextPossibleRobotPos
+        else if (mapAt map nextPossibleRobotPos = '[' || mapAt map nextPossibleRobotPos = ']') then
+            if fst direction = 0 && canPushBoxesHorizontally nextPossibleRobotPos then
                 pushBoxesHorizontally nextPossibleRobotPos
                 map, nextPossibleRobotPos
-            else if fst direction <> 0 && canPushBoxesVertically nextPossibleRobotPos
-            then
+            else if fst direction <> 0 && canPushBoxesVertically nextPossibleRobotPos then
                 pushBoxesVertically nextPossibleRobotPos
                 map, nextPossibleRobotPos
             else
                 map, robotPos
-        else map, robotPos
+        else
+            map, robotPos
 
     let map = readMap filename
 
