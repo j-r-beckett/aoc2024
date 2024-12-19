@@ -8,21 +8,6 @@ let readInput filename =
     let designs = lines[2..]
     patterns, designs
 
-let rec canConstructDesign (patterns: list<string>) (design: string) =
-    let rec helper designs =
-        match designs with
-        | [] -> false
-        | head :: tail -> canConstructDesign patterns head || helper tail
-
-    if design.Length = 0 then
-        true
-    else
-        patterns
-        |> List.filter (fun pattern -> design.StartsWith(pattern))
-        |> List.map (fun pattern -> design[pattern.Length ..])
-        |> helper
-
-
 let waysToBuildDesign (patterns: list<string>) (design: string) =
     let cache = new Dictionary<string, int64>()
 
@@ -52,8 +37,8 @@ let waysToBuildDesign (patterns: list<string>) (design: string) =
 let patterns, designs = readInput "input.dat"
 
 designs
-|> List.map (canConstructDesign patterns)
-|> List.filter id
+|> List.map (waysToBuildDesign patterns)
+|> List.filter ((<) 0)
 |> List.length
 |> part1
 
