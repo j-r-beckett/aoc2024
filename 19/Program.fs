@@ -21,7 +21,7 @@ let waysToBuildDesign (patterns: list<string>) (design: string) =
         else
             let ways =
                 patterns
-                |> List.filter (fun pattern -> design.StartsWith(pattern))
+                |> List.filter design.StartsWith
                 |> List.map (fun pattern -> design[pattern.Length ..])
                 |> helper
 
