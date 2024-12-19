@@ -3,10 +3,7 @@ open System.Collections.Generic
 
 let readInput filename =
     let lines = readlines filename
-
-    let patterns = lines[0] |> _.Split(", ") |> Seq.toList
-    let designs = lines[2..]
-    patterns, designs
+    lines[0] |> _.Split(", ") |> Seq.toList, lines[2..]
 
 let waysToBuildDesign (patterns: list<string>) (design: string) =
     let cache = new Dictionary<string, int64>()
