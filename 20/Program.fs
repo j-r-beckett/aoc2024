@@ -59,15 +59,14 @@ let rec countCheats (map: list<list<char>>) (maxCheatDist: int) (minTimeSaved: i
             - cheatDist
 
         [ for rowDiff in [ -maxCheatDist .. maxCheatDist ] do
-              for colDiff in [ -maxCheatDist .. maxCheatDist ] -> rowDiff, colDiff ]
-        |> List.filter (fun (rowDiff, colDiff) -> (abs rowDiff) + (abs colDiff) <= maxCheatDist)
+              for colDiff in [ -(maxCheatDist - (abs rowDiff)) .. (maxCheatDist - (abs rowDiff)) ] -> rowDiff, colDiff ]
         |> List.map (fun (rowDiff, colDiff) -> cheatStartRow + rowDiff, cheatStartCol + colDiff)
         |> List.filter (isInBounds map)
         |> List.filter (isOnPath map)
         |> List.filter (fun cheatEnd -> timeSaved cheatEnd >= minTimeSaved)
         |> List.length
 
-    Map.keys distances |> List.ofSeq |> List.map countCheatEnds |> List.sum
+    Map.keys distances |> Seq.map countCheatEnds |> Seq.sum
 
 let map = readlines "input.dat" |> List.map Seq.toList
 countCheats map 2 100 |> part1
