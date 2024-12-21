@@ -103,13 +103,24 @@ let part1ButtonPresses (code: list<char>) =
     |> findAllNeededButtonPresses numericKp
     |> findAllNeededButtonPresses directionalKp
     |> findAllNeededButtonPresses directionalKp
-    |> List.map (List.map string)
-    |> List.map (String.concat "")
+    // |> List.map (List.map string)
+    // |> List.map (String.concat "")
 
 
-let codes = readlines "test.dat" |> List.map Seq.toList
-for path in part1ButtonPresses codes[0] do
-    printfn "%A" path
+let pathComplexity (code: list<char>, path: list<char>) =
+    let numeric = code[..code.Length - 2] |> List.map string |> String.concat "" |> int
+    numeric * path.Length
+
+
+let codes = readlines "input.dat" |> List.map Seq.toList
+// for path in part1ButtonPresses codes[0] do
+//     printfn "%A" path
 // part1ButtonPresses codes[0] |> List.map Seq.length |> List.distinct |> printfn "%A"
+codes
+|> List.map (fun code -> code, part1ButtonPresses code |> List.head)
+|> List.map pathComplexity
+|> List.sum
+|> part1
+// pathComplexity codes[0] (part1ButtonPresses codes[0] |> List.head) |> printfn "%A"
 
 // findPaths numericKeypadMap '0' '6' |> printfn "%A"
