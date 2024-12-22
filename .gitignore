@@ -3,3 +3,4 @@ obj/
 .fake
 **/input.dat
 **/test.dat
+.vscode/
