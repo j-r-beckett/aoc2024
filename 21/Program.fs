@@ -73,12 +73,7 @@ let findNeededDirectionalInput (goalKeypad: KeypadMap) (goal: list<char>) =
         [ for prevPath in shortestPaths do
               for nextPath in nextShortestPaths -> prevPath @ nextPath @ [ 'A' ] ]
 
-    let possibleInputs =
-        List.fold combineShortestPaths [ [] ] (List.zip ([ 'A' ] @ goal[.. goal.Length - 2]) goal)
-
-    let shortestInputLen = List.min (List.map List.length possibleInputs)
-    possibleInputs |> List.filter (fun input -> input.Length = shortestInputLen)
-
+    List.fold combineShortestPaths [ [] ] (List.zip ([ 'A' ] @ goal[.. goal.Length - 2]) goal)
 
 let part1ButtonPresses (code: list<char>) =
     let findAllNeededButtonPresses (keyPad: KeypadMap) (desiredResults: list<list<char>>) =
