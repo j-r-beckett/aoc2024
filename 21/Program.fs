@@ -65,30 +65,27 @@ let findPaths (keypadMap: KeypadMap) (start: char) (goal: char) =
 
     bfs ()
 
-
-
-
-
 let part1ButtonPresses (code: list<char>) =
-
-
     let findAllNeededButtonPresses (keyPad: KeypadMap) (desiredResults: list<list<char>>) =
-        // let findAllShortestPaths (desiredResult: list<char>) =
-        //     List.zip (['A'] @ desiredResult[..desiredResult.Length - 2]) desiredResult
-        //     |> List.map (fun (prev, next) -> findPaths keyPad prev next |> List.map (fun path -> path @ ['A']))
-
-        // List.map findAllShortestPaths desiredResults
-
         let combineShortestPaths (shortestPaths: list<list<char>>) (prevEnd: char, nextStart: char) =
             let nextShortestPaths = findPaths keyPad prevEnd nextStart 
             [for prevPath in shortestPaths do for nextPath in nextShortestPaths -> prevPath @ nextPath @ ['A']]
-            // |> List.map (fun nextPath-> shortestPaths |> List.map (fun prevPath -> prevPath @ nextPath))
-
-
 
         let resultPaths = desiredResults 
                         |> List.map (fun desiredResult -> List.fold combineShortestPaths [[]] (List.zip (['A'] @ desiredResult[..desiredResult.Length - 2]) desiredResult))
-                        |> List.concat
+                        |> List.concat 
+
+        let shortestPathLen = List.min (List.map List.length resultPaths)
+        resultPaths |> List.filter (fun path -> path.Length = shortestPathLen)
+
+    let specialFindAllNeededButtonPresses (keyPad: KeypadMap) (desiredResults: list<list<char>>) =
+        let combineShortestPaths (shortestPaths: list<list<char>>) (prevEnd: char, nextStart: char) =
+            let nextShortestPaths = findPaths keyPad prevEnd nextStart 
+            [for prevPath in shortestPaths do for nextPath in nextShortestPaths -> prevPath @ ['.'] @ nextPath @ ['A']]
+
+        let resultPaths = desiredResults 
+                        |> List.map (fun desiredResult -> List.fold combineShortestPaths [[]] (List.zip (['A'] @ desiredResult[..desiredResult.Length - 2]) desiredResult))
+                        |> List.concat 
 
         let shortestPathLen = List.min (List.map List.length resultPaths)
         resultPaths |> List.filter (fun path -> path.Length = shortestPathLen)
@@ -102,7 +99,7 @@ let part1ButtonPresses (code: list<char>) =
     [ code ] 
     |> findAllNeededButtonPresses numericKp
     |> findAllNeededButtonPresses directionalKp
-    |> findAllNeededButtonPresses directionalKp
+    |> specialFindAllNeededButtonPresses directionalKp
     // |> List.map (List.map string)
     // |> List.map (String.concat "")
 
@@ -111,16 +108,12 @@ let pathComplexity (code: list<char>, path: list<char>) =
     let numeric = code[..code.Length - 2] |> List.map string |> String.concat "" |> int
     numeric * path.Length
 
-
 let codes = readlines "input.dat" |> List.map Seq.toList
-// for path in part1ButtonPresses codes[0] do
-//     printfn "%A" path
-// part1ButtonPresses codes[0] |> List.map Seq.length |> List.distinct |> printfn "%A"
-codes
-|> List.map (fun code -> code, part1ButtonPresses code |> List.head)
-|> List.map pathComplexity
-|> List.sum
-|> part1
-// pathComplexity codes[0] (part1ButtonPresses codes[0] |> List.head) |> printfn "%A"
+for path in part1ButtonPresses codes[0] do
+    path |> List.map string |> String.concat "" |> printfn "%A"
 
-// findPaths numericKeypadMap '0' '6' |> printfn "%A"
+// codes
+// |> List.map (fun code -> code, part1ButtonPresses code |> List.head)
+// |> List.map pathComplexity
+// |> List.sum
+// |> part1
