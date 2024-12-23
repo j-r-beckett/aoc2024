@@ -65,7 +65,6 @@ let findShortestPaths (keypadMap: KeypadMap) (start: char) (goal: char) =
 
     bfs ()
 
-
 let findNeededDirectionalInput (goalKeypad: KeypadMap) (goal: list<char>) =
     let combineShortestPaths (shortestPaths: list<list<char>>) (prevEnd: char, nextStart: char) =
         let nextShortestPaths = findShortestPaths goalKeypad prevEnd nextStart
@@ -74,6 +73,38 @@ let findNeededDirectionalInput (goalKeypad: KeypadMap) (goal: list<char>) =
               for nextPath in nextShortestPaths -> prevPath @ nextPath @ [ 'A' ] ]
 
     List.fold combineShortestPaths [ [] ] (List.zip ([ 'A' ] @ goal[.. goal.Length - 2]) goal)
+
+
+let buildDirectionalCache () =
+    let directionalKp = [ [ '.'; '^'; 'A' ]; [ '<'; 'v'; '>' ] ] |> mapKeypad
+
+    let findCacheVal (b1: char, b2: char) =
+        let l1Options = findNeededDirectionalInput directionalKp [b1; b2]
+        l1Options
+        |> List.map (fun l1opt -> l1opt[1..])
+        |> List.minBy (fun goal -> findNeededDirectionalInput directionalKp goal |> List.length)
+
+
+    let buttons = "^A<>v"
+    let combinations = [for b1 in buttons do for b2 in buttons -> b1, b2] 
+
+    combinations
+    |> List.map (fun comb -> comb, findCacheVal comb)
+    |> Map.ofList
+    
+
+let directionCache = buildDirectionalCache ()
+
+let findNeededDirectionalInputCached (goal: list<char>) =
+    let combineShortestPaths (shortestPaths: list<list<char>>) (prevEnd: char, nextStart: char) =
+        printfn "%A" (prevEnd, nextStart, directionCache[(prevEnd, nextStart)])
+        let nextShortestPaths = [directionCache[(prevEnd, nextStart)]]
+
+        [ for prevPath in shortestPaths do
+              for nextPath in nextShortestPaths -> prevPath @ nextPath ]
+
+    List.fold combineShortestPaths [ [] ] (List.zip ([ 'A' ] @ goal[.. goal.Length - 2]) goal)
+
 
 let part1ButtonPresses (code: list<char>) =
     let findAllNeededButtonPresses (keyPad: KeypadMap) (desiredResults: list<list<char>>) =
@@ -91,8 +122,10 @@ let part1ButtonPresses (code: list<char>) =
 
     [ code ]
     |> findAllNeededButtonPresses numericKp
-    |> findAllNeededButtonPresses directionalKp
-    |> findAllNeededButtonPresses directionalKp
+    |> List.map findNeededDirectionalInputCached 
+    // |> List.concat
+    // |> List.map findNeededDirectionalInputCached |> List.concat
+    |> List.minBy List.length
 
 
 let pathComplexity (code: list<char>, path: list<char>) =
@@ -103,9 +136,12 @@ let codes = readlines "test.dat" |> List.map Seq.toList
 
 // for path in part1ButtonPresses codes[0] do
 //     path |> List.map string |> String.concat "" |> printfn "%A"
+findNeededDirectionalInputCached ("<A^A>^^AvvvA" |> Seq.toList) |> List.head |> List.map string |> String.concat "" |> printfn "%A"
 
-codes
-|> List.map (fun code -> code, part1ButtonPresses code |> List.head)
-|> List.map pathComplexity
-|> List.sum
-|> part1
+// (buildDirectionalCache ())[('<', 'A')] |> printfn "%A"
+
+// codes
+// |> List.map (fun code -> code, part1ButtonPresses code)
+// |> List.map pathComplexity
+// |> List.sum
+// |> part1
